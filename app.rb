@@ -43,13 +43,24 @@ class PasswordHasher
 end
 
 class DompetHarian < Sinatra::Base
+  def self.db_config(dbname)
+    config = {
+      dbname: dbname,
+      user: ENV['DB_USER'] || ENV['USER'] || 'yaakhi',
+      host: ENV['DB_HOST'] || '127.0.0.1',
+      port: (ENV['DB_PORT'] || 5432).to_i
+    }
+    config[:password] = ENV['DB_PASSWORD'] if ENV['DB_PASSWORD'] && !ENV['DB_PASSWORD'].strip.empty?
+    config
+  end
+
   def self.setup_database
     user = ENV['DB_USER'] || ENV['USER'] || 'yaakhi'
-    puts "Initializing database for user: #{user}..."
+    puts "Initializing database using configuration..."
     
     # 1. Connect to default postgres DB to ensure dompet_harian database exists
     begin
-      conn = PG.connect(dbname: 'postgres', user: user)
+      conn = PG.connect(db_config('postgres'))
       db_exists = conn.exec("SELECT 1 FROM pg_database WHERE datname = 'dompet_harian'").any?
       unless db_exists
         conn.exec("CREATE DATABASE dompet_harian")
@@ -63,7 +74,7 @@ class DompetHarian < Sinatra::Base
 
     # 2. Connect to dompet_harian database and create/migrate schema
     begin
-      conn = PG.connect(dbname: 'dompet_harian', user: user)
+      conn = PG.connect(db_config('dompet_harian'))
       
       # Create users table
       conn.exec <<-SQL
@@ -158,7 +169,7 @@ class DompetHarian < Sinatra::Base
   # DB Connection helper for request lifetime
   helpers do
     def db
-      @db ||= PG.connect(dbname: 'dompet_harian', user: ENV['DB_USER'] || ENV['USER'] || 'yaakhi')
+      @db ||= PG.connect(DompetHarian.db_config('dompet_harian'))
     end
 
     def current_user
