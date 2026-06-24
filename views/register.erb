@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daftar - DompetHarian</title>
+  
+  <!-- CSS Link -->
+  <link rel="stylesheet" href="/css/style.css">
+  
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+  <div class="auth-container">
+    <div class="auth-card">
+      
+      <!-- Header / Brand -->
+      <div class="auth-header">
+        <div class="brand" style="margin: 0;">
+          <div class="brand-icon">
+            <i data-lucide="wallet"></i>
+          </div>
+          <span class="brand-name" style="margin-left: 0.5rem; font-size: 1.5rem;">DompetHarian</span>
+        </div>
+        <h2 class="auth-title" style="margin-top: 1rem;">Buat Akun Baru</h2>
+        <p class="auth-subtitle">Daftar sekarang untuk mulai mencatat keuangan pribadi Anda</p>
+      </div>
+
+      <!-- Flash notifications -->
+      <% if session[:success] %>
+        <div class="notification success show" style="position: relative; bottom: auto; right: auto; transform: none; width: 100%; box-sizing: border-box; margin-bottom: 0;">
+          <i data-lucide="check-circle"></i>
+          <span><%= session.delete(:success) %></span>
+        </div>
+      <% end %>
+      <% if session[:error] %>
+        <div class="notification error show" style="position: relative; bottom: auto; right: auto; transform: none; width: 100%; box-sizing: border-box; margin-bottom: 0;">
+          <i data-lucide="alert-circle"></i>
+          <span><%= session.delete(:error) %></span>
+        </div>
+      <% end %>
+
+      <!-- Form -->
+      <form class="auth-form" action="/register" method="POST">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" class="form-input" placeholder="Masukkan username" required maxlength="50" pattern="^[a-zA-Z0-9_]{3,30}$" title="Username hanya boleh berisi huruf, angka, dan garis bawah (3-30 karakter)">
+        </div>
+
+        <div class="form-group">
+          <label for="email">Alamat Email</label>
+          <input type="email" id="email" name="email" class="form-input" placeholder="name@example.com" required>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" class="form-input" placeholder="Minimal 6 karakter" required minlength="6">
+        </div>
+
+        <div class="form-group">
+          <label for="confirm_password">Konfirmasi Password</label>
+          <input type="password" id="confirm_password" name="confirm_password" class="form-input" placeholder="Ulangi password" required minlength="6">
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="padding: 0.85rem; width: 100%; margin-top: 0.5rem;">
+          <i data-lucide="user-plus"></i>
+          <span>Daftar Akun</span>
+        </button>
+      </form>
+
+      <!-- Links -->
+      <div class="auth-links">
+        Sudah punya akun? <a href="/login">Masuk sekarang</a>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    });
+  </script>
+</body>
+</html>

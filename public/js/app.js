@@ -27,10 +27,82 @@ document.addEventListener('DOMContentLoaded', () => {
   const addButtons = document.querySelectorAll('.trigger-add-expense');
   const closeModalButton = document.querySelector('.modal-close');
 
+  const expenseCategories = [
+    { value: 'Makanan & Minuman', label: '🍔 Makanan & Minuman' },
+    { value: 'Transportasi', label: '🚗 Transportasi' },
+    { value: 'Tagihan & Utilitas', label: '⚡ Tagihan & Utilitas' },
+    { value: 'Hiburan & Rekreasi', label: '🎮 Hiburan & Rekreasi' },
+    { value: 'Belanja', label: '🛍️ Belanja' },
+    { value: 'Kesehatan', label: '💊 Kesehatan' },
+    { value: 'Lainnya', label: '📦 Lainnya' }
+  ];
+
+  const incomeCategories = [
+    { value: 'Gaji', label: '💼 Gaji' },
+    { value: 'Investasi', label: '📈 Investasi' },
+    { value: 'Wirausaha', label: '🏪 Wirausaha' },
+    { value: 'Lainnya', label: '📦 Lainnya' }
+  ];
+
+  const populateCategories = (categories) => {
+    const categorySelect = document.getElementById('expense-category');
+    if (categorySelect) {
+      categorySelect.innerHTML = '<option value="" disabled selected>Pilih Kategori</option>';
+      categories.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat.value;
+        opt.textContent = cat.label;
+        categorySelect.appendChild(opt);
+      });
+    }
+  };
+
+  const updateFormType = (type) => {
+    const typeInput = document.getElementById('transaction-type');
+    if (typeInput) typeInput.value = type;
+
+    // Toggle button active states
+    document.querySelectorAll('.type-toggle-btn').forEach(btn => {
+      if (btn.getAttribute('data-type') === type) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+
+    // Update labels and category dropdown
+    const titleLabel = document.querySelector('label[for="expense-title"]');
+    const titleInput = document.getElementById('expense-title');
+    const amountLabel = document.querySelector('label[for="expense-amount"]');
+    const amountPreview = document.getElementById('amount-preview');
+
+    if (type === 'expense') {
+      if (titleLabel) titleLabel.textContent = 'Nama Pengeluaran';
+      if (titleInput) titleInput.placeholder = 'e.g. Makan siang nasi padang';
+      if (amountLabel) amountLabel.textContent = 'Jumlah Pengeluaran (Rp)';
+      if (amountPreview && amountPreview.textContent) {
+        amountPreview.style.color = 'var(--accent-danger)';
+      }
+      populateCategories(expenseCategories);
+    } else {
+      if (titleLabel) titleLabel.textContent = 'Sumber Pemasukan';
+      if (titleInput) titleInput.placeholder = 'e.g. Gaji bulanan, Bonus';
+      if (amountLabel) amountLabel.textContent = 'Jumlah Pemasukan (Rp)';
+      if (amountPreview && amountPreview.textContent) {
+        amountPreview.style.color = 'var(--accent-success)';
+      }
+      populateCategories(incomeCategories);
+    }
+  };
+
   const openModal = () => {
     if (modalOverlay) {
       modalOverlay.classList.add('open');
       document.body.style.overflow = 'hidden'; // Prevent background scrolling
+      
+      // Reset form default states
+      updateFormType('expense');
+      
       // Set default date to today
       const dateInput = document.getElementById('expense-date');
       if (dateInput && !dateInput.value) {
@@ -67,6 +139,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Bind click events to type toggle buttons
+  document.querySelectorAll('.type-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const type = btn.getAttribute('data-type');
+      updateFormType(type);
+    });
+  });
+
   // 3. IDR Amount Formatter Preview
   const amountInput = document.getElementById('expense-amount');
   const amountPreview = document.getElementById('amount-preview');
@@ -82,7 +162,11 @@ document.addEventListener('DOMContentLoaded', () => {
           minimumFractionDigits: 0
         }).format(val);
         amountPreview.textContent = formatted;
-        amountPreview.style.color = 'var(--accent-success)';
+        
+        // Color based on active transaction type
+        const typeInput = document.getElementById('transaction-type');
+        const type = typeInput ? typeInput.value : 'expense';
+        amountPreview.style.color = type === 'income' ? 'var(--accent-success)' : 'var(--accent-danger)';
       } else {
         amountPreview.textContent = '';
       }
@@ -171,7 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       
-      if (!confirm('Apakah Anda yakin ingin menghapus catatan pengeluaran ini?')) {
+      if (!confirm('Apakah Anda yakin ingin menghapus catatan transaksi ini?')) {
         return;
       }
       

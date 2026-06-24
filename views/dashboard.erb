@@ -2,26 +2,28 @@
 
 <div class="page-header">
   <div class="welcome-section">
-    <h1>Selamat Datang, Yaakhi!</h1>
-    <p>Pantau pengeluaran harian Anda agar keuangan tetap sehat.</p>
+    <h1>Selamat Datang, <%= current_user['username'] %>!</h1>
+    <p>Pantau pemasukan dan pengeluaran harian Anda agar keuangan tetap sehat.</p>
   </div>
   <div class="header-actions">
     <button class="btn btn-primary trigger-add-expense">
       <i data-lucide="plus"></i>
-      <span>Catat Pengeluaran</span>
+      <span>Catat Transaksi</span>
     </button>
   </div>
 </div>
 
 <!-- STATS SUMMARY CARDS -->
-<div class="stats-grid">
-  <div class="stat-card today">
+<div class="stats-grid" style="margin-bottom: 2rem;">
+  <div class="stat-card balance">
     <div class="stat-icon-wrapper">
-      <i data-lucide="calendar"></i>
+      <i data-lucide="wallet"></i>
     </div>
     <div class="stat-info">
-      <span class="stat-label">Hari Ini</span>
-      <span class="stat-value"><%= format_idr(@total_today) %></span>
+      <span class="stat-label">Saldo Saat Ini</span>
+      <span class="stat-value" style="color: <%= @balance >= 0 ? 'var(--text-primary)' : 'var(--accent-danger)' %>;">
+        <%= format_idr(@balance) %>
+      </span>
     </div>
   </div>
 
@@ -30,8 +32,18 @@
       <i data-lucide="trending-up"></i>
     </div>
     <div class="stat-info">
-      <span class="stat-label">Bulan Ini</span>
-      <span class="stat-value"><%= format_idr(@total_month) %></span>
+      <span class="stat-label">Pemasukan Bulan Ini</span>
+      <span class="stat-value" style="color: var(--accent-success);"><%= format_idr(@total_income) %></span>
+    </div>
+  </div>
+
+  <div class="stat-card expense">
+    <div class="stat-icon-wrapper">
+      <i data-lucide="credit-card"></i>
+    </div>
+    <div class="stat-info">
+      <span class="stat-label">Pengeluaran Bulan Ini</span>
+      <span class="stat-value" style="color: var(--accent-danger);"><%= format_idr(@total_month) %></span>
     </div>
   </div>
 
@@ -40,7 +52,7 @@
       <i data-lucide="bar-chart-3"></i>
     </div>
     <div class="stat-info">
-      <span class="stat-label">Rata-rata Harian</span>
+      <span class="stat-label">Rerata Pengeluaran</span>
       <span class="stat-value"><%= format_idr(@avg_daily) %></span>
     </div>
   </div>
@@ -49,45 +61,51 @@
 <!-- DASHBOARD MAIN GRID -->
 <div class="dashboard-grid">
   
-  <!-- Left Side: Recent Expenses -->
+  <!-- Left Side: Recent Transactions -->
   <div class="section-card">
     <div class="section-header">
       <h3 class="section-title">
         <i data-lucide="history"></i>
-        <span>Pengeluaran Terbaru</span>
+        <span>Transaksi Terbaru</span>
       </h3>
       <a href="/expenses" class="btn btn-secondary btn-sm" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
         Lihat Semua
       </a>
     </div>
 
-    <% if @recent_expenses.empty? %>
+    <% if @recent_transactions.empty? %>
       <div class="empty-state">
         <i data-lucide="inbox"></i>
-        <p>Belum ada catatan pengeluaran.</p>
-        <p style="font-size: 0.85rem; margin-top: 0.25rem;">Klik tombol "Catat Pengeluaran" di atas untuk menambahkan.</p>
+        <p>Belum ada catatan transaksi.</p>
+        <p style="font-size: 0.85rem; margin-top: 0.25rem;">Klik tombol "Catat Transaksi" di atas untuk menambahkan.</p>
       </div>
     <% else %>
       <div class="expense-list">
-        <% @recent_expenses.each do |expense| %>
+        <% @recent_transactions.each do |transaction| %>
+          <% is_income = transaction['type'] == 'income' %>
           <div class="expense-item">
             <div class="expense-left">
-              <div class="category-badge-icon <%= category_color_class(expense['category']) %>">
-                <i data-lucide="<%= category_icon(expense['category']) %>"></i>
+              <div class="category-badge-icon <%= category_color_class(transaction['category']) %>">
+                <i data-lucide="<%= category_icon(transaction['category']) %>"></i>
               </div>
               <div class="expense-meta">
-                <span class="expense-title"><%= expense['title'] %></span>
+                <span class="expense-title"><%= transaction['title'] %></span>
                 <div class="expense-subtitle">
-                  <span><%= format_date(expense['date']) %></span>
+                  <span><%= format_date(transaction['date']) %></span>
                   <span>•</span>
-                  <span style="color: var(--text-muted);"><%= expense['category'] %></span>
+                  <span style="color: var(--text-muted);"><%= transaction['category'] %></span>
+                  <span style="font-size: 0.75rem; padding: 0.1rem 0.4rem; border-radius: 4px; background: <%= is_income ? 'rgba(16, 185, 129, 0.15)' : 'rgba(244, 63, 94, 0.15)' %>; color: <%= is_income ? 'var(--accent-success)' : 'var(--accent-danger)' %>;">
+                    <%= is_income ? 'Pemasukan' : 'Pengeluaran' %>
+                  </span>
                 </div>
               </div>
             </div>
             
             <div class="expense-right">
-              <span class="expense-amount">- <%= format_idr(expense['amount']) %></span>
-              <form class="delete-expense-form" action="/expenses/<%= expense['id'] %>/delete" method="POST">
+              <span class="expense-amount <%= is_income ? 'amount-income' : 'amount-expense' %>">
+                <%= is_income ? '+' : '-' %> <%= format_idr(transaction['amount']) %>
+              </span>
+              <form class="delete-expense-form" action="/expenses/<%= transaction['id'] %>/delete" method="POST">
                 <button type="submit" class="btn-delete-icon" title="Hapus">
                   <i data-lucide="trash-2"></i>
                 </button>
@@ -111,7 +129,7 @@
     <% if @category_stats.empty? %>
       <div class="empty-state" style="padding: 2rem 0;">
         <i data-lucide="pie-chart" style="font-size: 2.5rem;"></i>
-        <p style="font-size: 0.9rem;">Belum ada data porsi kategori.</p>
+        <p style="font-size: 0.9rem;">Belum ada data porsi pengeluaran.</p>
       </div>
     <% else %>
       <div style="display: flex; flex-direction: column; gap: 1.25rem;">

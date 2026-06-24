@@ -48,15 +48,24 @@
       <div class="sidebar-footer">
         <button class="btn btn-primary trigger-add-expense" style="width: 100%; margin-bottom: 1.5rem;">
           <i data-lucide="plus-circle"></i>
-          <span>Tambah Pengeluaran</span>
+          <span>Tambah Transaksi</span>
         </button>
         
-        <div class="user-profile">
-          <div class="avatar">YK</div>
-          <div class="profile-info">
-            <span class="username">Yaakhi</span>
-            <span class="user-role">Administrator</span>
+        <div class="user-profile" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div class="avatar"><%= user_initials(current_user['username']) %></div>
+            <div class="profile-info">
+              <span class="username" title="<%= current_user['username'] %>">
+                <%= current_user['username'].length > 12 ? current_user['username'][0..10] + '..' : current_user['username'] %>
+              </span>
+              <span class="user-role">Pengguna</span>
+            </div>
           </div>
+          <form action="/logout" method="POST" style="margin: 0;">
+            <button type="submit" class="btn-logout" title="Keluar Akun">
+              <i data-lucide="log-out"></i>
+            </button>
+          </form>
         </div>
       </div>
     </aside>
@@ -104,16 +113,25 @@
 
   </div>
 
-  <!-- 4. ADD EXPENSE MODAL (SHARED) -->
+  <!-- 4. ADD TRANSACTION MODAL (SHARED) -->
   <div class="modal-overlay" id="add-expense-modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3 class="modal-title">Tambah Catatan Pengeluaran</h3>
+        <h3 class="modal-title">Tambah Catatan Transaksi</h3>
         <button class="modal-close">&times;</button>
       </div>
       <div class="modal-body">
         <form id="expense-form" action="/expenses" method="POST">
           
+          <div class="form-group">
+            <label>Jenis Transaksi</label>
+            <div class="transaction-type-toggle">
+              <button type="button" class="type-toggle-btn active" data-type="expense">Pengeluaran</button>
+              <button type="button" class="type-toggle-btn" data-type="income">Pemasukan</button>
+            </div>
+            <input type="hidden" id="transaction-type" name="type" value="expense">
+          </div>
+
           <div class="form-group">
             <label for="expense-title">Nama Pengeluaran</label>
             <input type="text" id="expense-title" name="title" class="form-input" placeholder="e.g. Makan siang nasi padang" required maxlength="100">
@@ -146,7 +164,7 @@
 
           <div class="form-group">
             <label for="expense-notes">Catatan Tambahan (Opsional)</label>
-            <textarea id="expense-notes" name="notes" class="form-input" placeholder="e.g. Traktir teman kantor" rows="3"></textarea>
+            <textarea id="expense-notes" name="notes" class="form-input" placeholder="e.g. Catatan tambahan transaksi" rows="3"></textarea>
           </div>
 
           <button type="submit" class="btn btn-primary" style="margin-top: 0.5rem;">
