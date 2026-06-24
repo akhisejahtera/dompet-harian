@@ -1,0 +1,111 @@
+<!-- EXPENSES HISTORY VIEW -->
+
+<div class="page-header">
+  <div class="welcome-section">
+    <h1>Riwayat Transaksi</h1>
+    <p>Lihat dan cari semua catatan pengeluaran keuangan Anda.</p>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-primary trigger-add-expense">
+      <i data-lucide="plus"></i>
+      <span>Catat Pengeluaran</span>
+    </button>
+  </div>
+</div>
+
+<!-- FILTER FORM -->
+<form class="filter-form" method="GET" action="/expenses">
+  <div class="form-group">
+    <label for="search">Cari Nama</label>
+    <input type="text" id="search" name="search" class="form-input" placeholder="e.g. Makan, Gojek" value="<%= @search_query %>">
+  </div>
+  
+  <div class="form-group">
+    <label for="category">Kategori</label>
+    <select id="category" name="category" class="form-input">
+      <option value="">Semua Kategori</option>
+      <% @categories.each do |cat| %>
+        <option value="<%= cat %>" <%= 'selected' if @category_filter == cat %>><%= cat %></option>
+      <% end %>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label for="start_date">Mulai Tanggal</label>
+    <input type="date" id="start_date" name="start_date" class="form-input" value="<%= @start_date %>">
+  </div>
+
+  <div class="form-group">
+    <label for="end_date">Sampai Tanggal</label>
+    <input type="date" id="end_date" name="end_date" class="form-input" value="<%= @end_date %>">
+  </div>
+
+  <div style="display: flex; gap: 0.5rem; justify-content: flex-end; width: 100%;">
+    <% if @search_query || @category_filter || @start_date || @end_date %>
+      <a href="/expenses" class="btn btn-secondary" style="flex: 1; text-align: center;">
+        <i data-lucide="x-circle"></i>
+        <span>Reset</span>
+      </a>
+    <% end %>
+    <button type="submit" class="btn btn-primary" style="flex: 2;">
+      <i data-lucide="search"></i>
+      <span>Filter</span>
+    </button>
+  </div>
+</form>
+
+<!-- LIST TRANSACTION RESULTS -->
+<div class="section-card">
+  <div class="section-header">
+    <h3 class="section-title">
+      <i data-lucide="list"></i>
+      <span>Daftar Pengeluaran</span>
+    </h3>
+    <span style="font-size: 0.9rem; color: var(--text-secondary); font-weight: 500;">
+      Menampilkan <%= @expenses.size %> Catatan
+    </span>
+  </div>
+
+  <% if @expenses.empty? %>
+    <div class="empty-state">
+      <i data-lucide="search-code"></i>
+      <p>Tidak ada transaksi yang cocok.</p>
+      <p style="font-size: 0.85rem; margin-top: 0.25rem;">Coba ubah kata kunci pencarian atau filter kategori Anda.</p>
+    </div>
+  <% else %>
+    <div class="expense-list">
+      <% @expenses.each do |expense| %>
+        <div class="expense-item">
+          <div class="expense-left">
+            <div class="category-badge-icon <%= category_color_class(expense['category']) %>">
+              <i data-lucide="<%= category_icon(expense['category']) %>"></i>
+            </div>
+            <div class="expense-meta">
+              <span class="expense-title"><%= expense['title'] %></span>
+              <div class="expense-subtitle">
+                <span><%= format_date(expense['date']) %></span>
+                <span>•</span>
+                <span style="color: var(--text-muted);"><%= expense['category'] %></span>
+                <% if expense['notes'] && !expense['notes'].strip.empty? %>
+                  <span>•</span>
+                  <span style="font-style: italic; color: var(--text-secondary);" title="<%= expense['notes'] %>">
+                    "<%= expense['notes'].length > 25 ? expense['notes'][0..22] + '...' : expense['notes'] %>"
+                  </span>
+                <% end %>
+              </div>
+            </div>
+          </div>
+          
+          <div class="expense-right">
+            <span class="expense-amount">- <%= format_idr(expense['amount']) %></span>
+            <form class="delete-expense-form" action="/expenses/<%= expense['id'] %>/delete" method="POST">
+              <button type="submit" class="btn-delete-icon" title="Hapus">
+                <i data-lucide="trash-2"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>

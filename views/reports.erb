@@ -1,0 +1,270 @@
+<!-- REPORTS ANALYTICS VIEW -->
+
+<!-- ChartJS CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="page-header">
+  <div class="welcome-section">
+    <h1>Laporan Keuangan</h1>
+    <p>Visualisasi grafik pengeluaran bulanan dan tren pengeluaran harian Anda.</p>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-primary trigger-add-expense">
+      <i data-lucide="plus"></i>
+      <span>Catat Pengeluaran</span>
+    </button>
+  </div>
+</div>
+
+<div class="charts-grid" style="display: flex; flex-direction: column; gap: 1.5rem;">
+
+  <!-- Upper Row: Monthly Trend Line Chart (Full Width) -->
+  <div class="section-card">
+    <div class="section-header">
+      <h3 class="section-title">
+        <i data-lucide="trending-up"></i>
+        <span>Tren Pengeluaran Harian (30 Hari Terakhir)</span>
+      </h3>
+    </div>
+    
+    <% if @daily_trend.all? { |d| d[:total] == 0.0 } %>
+      <div class="empty-state" style="padding: 5rem 0;">
+        <i data-lucide="line-chart" style="font-size: 3rem;"></i>
+        <p>Belum ada tren pengeluaran untuk ditampilkan.</p>
+        <p style="font-size: 0.85rem; margin-top: 0.25rem;">Catatan transaksi baru akan melacak statistik tren pengeluaran harian secara realtime.</p>
+      </div>
+    <% else %>
+      <div class="chart-container" style="height: 350px;">
+        <canvas id="trendChart"></canvas>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Lower Row: Split category breakdown and summary stats -->
+  <div style="display: grid; grid-template-columns: 1.2fr 1.8fr; gap: 1.5rem; width: 100%;" class="charts-grid-lower">
+    
+    <!-- Left Panel: Doughnut Chart -->
+    <div class="section-card" style="display: flex; flex-direction: column;">
+      <div class="section-header">
+        <h3 class="section-title">
+          <i data-lucide="pie-chart"></i>
+          <span>Distribusi Kategori (Bulan Ini)</span>
+        </h3>
+      </div>
+      
+      <% if @category_chart.empty? %>
+        <div class="empty-state" style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem 0;">
+          <i data-lucide="activity" style="font-size: 3rem;"></i>
+          <p>Belum ada data distribusi kategori.</p>
+        </div>
+      <% else %>
+        <div class="chart-container" style="height: 260px; margin: auto;">
+          <canvas id="categoryChart"></canvas>
+        </div>
+      <% end %>
+    </div>
+
+    <!-- Right Panel: Data Grid List -->
+    <div class="section-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+      <div class="section-header">
+        <h3 class="section-title">
+          <i data-lucide="list-checks"></i>
+          <span>Rincian Pengeluaran per Kategori</span>
+        </h3>
+      </div>
+      
+      <% if @category_chart.empty? %>
+        <div class="empty-state" style="padding: 4rem 0;">
+          <p>Belum ada pengeluaran di catat bulan ini.</p>
+        </div>
+      <% else %>
+        <div style="display: flex; flex-direction: column; gap: 0.75rem; flex-grow: 1;">
+          <% 
+            total_sum = @category_chart.sum { |c| c[:total] }
+            @category_chart.each do |c|
+              percent = total_sum > 0 ? (c[:total] / total_sum * 100).round : 0
+          %>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+              <span style="display: flex; align-items: center; gap: 0.6rem; font-weight: 500;">
+                <span style="width: 10px; height: 10px; border-radius: 50%; display: inline-block;" class="<%= category_color_class(c[:category]) %>"></span>
+                <%= c[:category] %>
+              </span>
+              <div style="text-align: right;">
+                <div style="font-weight: 700; color: var(--text-primary);"><%= format_idr(c[:total]) %></div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.1rem;"><%= percent %>% dari seluruh pengeluaran</div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+</div>
+
+<!-- CHART.JS LOGIC SCRIPT -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // Check if charts elements exist in the view
+  const trendCanvas = document.getElementById('trendChart');
+  const categoryCanvas = document.getElementById('categoryChart');
+
+  // Chart Global Style Tweaks for Dark Theme
+  Chart.defaults.color = 'rgba(255, 255, 255, 0.6)';
+  Chart.defaults.font.family = "'Outfit', sans-serif";
+
+  // Category Color Map matching CSS
+  const categoryColors = {
+    'Makanan & Minuman': '#f97316',
+    'Transportasi': '#3b82f6',
+    'Tagihan & Utilitas': '#10b981',
+    'Hiburan & Rekreasi': '#8b5cf6',
+    'Belanja': '#ec4899',
+    'Kesehatan': '#ef4444',
+    'Lainnya': '#64748b'
+  };
+
+  // 1. Setup Trend Chart (Line)
+  if (trendCanvas) {
+    const dailyLabels = <%= @daily_trend.map { |d| d[:formatted_date] }.to_json %>;
+    const dailyTotals = <%= @daily_trend.map { |d| d[:total] }.to_json %>;
+
+    new Chart(trendCanvas, {
+      type: 'line',
+      data: {
+        labels: dailyLabels,
+        datasets: [{
+          label: 'Total Pengeluaran (Rp)',
+          data: dailyTotals,
+          borderColor: '#6366f1',
+          borderWidth: 3,
+          backgroundColor: 'rgba(99, 102, 241, 0.1)',
+          fill: true,
+          tension: 0.3,
+          pointBackgroundColor: '#818cf8',
+          pointRadius: 3,
+          pointHoverRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            backgroundColor: '#1e293b',
+            titleColor: '#fff',
+            bodyColor: '#fff',
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+            borderWidth: 1,
+            callbacks: {
+              label: function(context) {
+                let label = context.dataset.label || '';
+                if (label) {
+                  label += ': ';
+                }
+                if (context.parsed.y !== null) {
+                  label += new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(context.parsed.y);
+                }
+                return label;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: {
+              color: 'rgba(255, 255, 255, 0.03)',
+              borderColor: 'rgba(255, 255, 255, 0.05)'
+            }
+          },
+          y: {
+            beginAtZero: true,
+            grid: {
+              color: 'rgba(255, 255, 255, 0.03)',
+              borderColor: 'rgba(255, 255, 255, 0.05)'
+            },
+            ticks: {
+              callback: function(value, index, values) {
+                if (value >= 1000000) {
+                  return 'Rp ' + (value / 1000000).toFixed(1) + 'jt';
+                } else if (value >= 1000) {
+                  return 'Rp ' + (value / 1000).toFixed(0) + 'rb';
+                }
+                return 'Rp ' + value;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // 2. Setup Category Chart (Doughnut)
+  if (categoryCanvas) {
+    const rawCategories = <%= @category_chart.to_json %>;
+    const labels = rawCategories.map(c => c.category);
+    const totals = rawCategories.map(c => c.total);
+    const colors = labels.map(label => categoryColors[label] || '#64748b');
+
+    new Chart(categoryCanvas, {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: totals,
+          backgroundColor: colors,
+          borderWidth: 2,
+          borderColor: '#0f172a',
+          hoverOffset: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              padding: 15,
+              usePointStyle: true,
+              pointStyle: 'circle'
+            }
+          },
+          tooltip: {
+            backgroundColor: '#1e293b',
+            titleColor: '#fff',
+            bodyColor: '#fff',
+            borderColor: 'rgba(255, 255, 255, 0.1)',
+            borderWidth: 1,
+            callbacks: {
+              label: function(context) {
+                let label = context.label || '';
+                if (label) {
+                  label += ': ';
+                }
+                if (context.parsed !== null) {
+                  label += new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(context.parsed);
+                }
+                return label;
+              }
+            }
+          }
+        },
+        cutout: '70%'
+      }
+    });
+  }
+});
+</script>
+
+<style>
+/* Responsive tweaks specifically for reports grids */
+@media (max-width: 767px) {
+  .charts-grid-lower {
+    grid-template-columns: 1fr !important;
+  }
+}
+</style>

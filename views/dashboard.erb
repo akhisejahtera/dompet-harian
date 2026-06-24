@@ -1,0 +1,140 @@
+<!-- DASHBOARD VIEW -->
+
+<div class="page-header">
+  <div class="welcome-section">
+    <h1>Selamat Datang, Yaakhi!</h1>
+    <p>Pantau pengeluaran harian Anda agar keuangan tetap sehat.</p>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-primary trigger-add-expense">
+      <i data-lucide="plus"></i>
+      <span>Catat Pengeluaran</span>
+    </button>
+  </div>
+</div>
+
+<!-- STATS SUMMARY CARDS -->
+<div class="stats-grid">
+  <div class="stat-card today">
+    <div class="stat-icon-wrapper">
+      <i data-lucide="calendar"></i>
+    </div>
+    <div class="stat-info">
+      <span class="stat-label">Hari Ini</span>
+      <span class="stat-value"><%= format_idr(@total_today) %></span>
+    </div>
+  </div>
+
+  <div class="stat-card month">
+    <div class="stat-icon-wrapper">
+      <i data-lucide="trending-up"></i>
+    </div>
+    <div class="stat-info">
+      <span class="stat-label">Bulan Ini</span>
+      <span class="stat-value"><%= format_idr(@total_month) %></span>
+    </div>
+  </div>
+
+  <div class="stat-card avg">
+    <div class="stat-icon-wrapper">
+      <i data-lucide="bar-chart-3"></i>
+    </div>
+    <div class="stat-info">
+      <span class="stat-label">Rata-rata Harian</span>
+      <span class="stat-value"><%= format_idr(@avg_daily) %></span>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD MAIN GRID -->
+<div class="dashboard-grid">
+  
+  <!-- Left Side: Recent Expenses -->
+  <div class="section-card">
+    <div class="section-header">
+      <h3 class="section-title">
+        <i data-lucide="history"></i>
+        <span>Pengeluaran Terbaru</span>
+      </h3>
+      <a href="/expenses" class="btn btn-secondary btn-sm" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
+        Lihat Semua
+      </a>
+    </div>
+
+    <% if @recent_expenses.empty? %>
+      <div class="empty-state">
+        <i data-lucide="inbox"></i>
+        <p>Belum ada catatan pengeluaran.</p>
+        <p style="font-size: 0.85rem; margin-top: 0.25rem;">Klik tombol "Catat Pengeluaran" di atas untuk menambahkan.</p>
+      </div>
+    <% else %>
+      <div class="expense-list">
+        <% @recent_expenses.each do |expense| %>
+          <div class="expense-item">
+            <div class="expense-left">
+              <div class="category-badge-icon <%= category_color_class(expense['category']) %>">
+                <i data-lucide="<%= category_icon(expense['category']) %>"></i>
+              </div>
+              <div class="expense-meta">
+                <span class="expense-title"><%= expense['title'] %></span>
+                <div class="expense-subtitle">
+                  <span><%= format_date(expense['date']) %></span>
+                  <span>•</span>
+                  <span style="color: var(--text-muted);"><%= expense['category'] %></span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="expense-right">
+              <span class="expense-amount">- <%= format_idr(expense['amount']) %></span>
+              <form class="delete-expense-form" action="/expenses/<%= expense['id'] %>/delete" method="POST">
+                <button type="submit" class="btn-delete-icon" title="Hapus">
+                  <i data-lucide="trash-2"></i>
+                </button>
+              </form>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Right Side: Category Breakdown Progress -->
+  <div class="section-card">
+    <div class="section-header">
+      <h3 class="section-title">
+        <i data-lucide="pie-chart"></i>
+        <span>Porsi Pengeluaran Bulan Ini</span>
+      </h3>
+    </div>
+
+    <% if @category_stats.empty? %>
+      <div class="empty-state" style="padding: 2rem 0;">
+        <i data-lucide="pie-chart" style="font-size: 2.5rem;"></i>
+        <p style="font-size: 0.9rem;">Belum ada data porsi kategori.</p>
+      </div>
+    <% else %>
+      <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+        <% 
+          total_sum = @category_stats.sum { |row| row['total'].to_f }
+          @category_stats.each do |row| 
+            percentage = total_sum > 0 ? (row['total'].to_f / total_sum * 100).round : 0
+        %>
+          <div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.4rem; font-weight: 500;">
+              <span style="display: flex; align-items: center; gap: 0.4rem;">
+                <span style="width: 8px; height: 8px; border-radius: 50%; display: inline-block;" class="<%= category_color_class(row['category']) %>"></span>
+                <%= row['category'] %>
+              </span>
+              <span><%= percentage %>% (<%= format_idr(row['total']) %>)</span>
+            </div>
+            <div style="width: 100%; height: 8px; background: rgba(255, 255, 255, 0.05); border-radius: 4px; overflow: hidden;">
+              <div class="<%= category_color_class(row['category']) %>" style="width: <%= percentage %>%; height: 100%; border-radius: 4px;"></div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+</div>
